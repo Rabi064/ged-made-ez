@@ -153,7 +153,7 @@ export type ReadinessBreakdown = {
   formulaLabel: string;
 };
 
-function storageKey(userId: string) {
+export function storageKey(userId: string) {
   return `ged-user-data:${userId}`;
 }
 

@@ -4,10 +4,13 @@ import { FormEvent, Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2, Mail, Lock, User } from "lucide-react";
+import { ArrowLeft, GraduationCap, Loader2, Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { BrandName } from "@/components/landing/brand-name";
+import { GRADE_META, type GradeLevel } from "@/data/curriculum";
+
+const gradeOptions = Object.values(GRADE_META).sort((a, b) => a.grade - b.grade);
 
 const perks = [
   "AI tutor aligned to Oman MoE Grades 9–12",
@@ -25,6 +28,7 @@ function SignInContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [educationLevel, setEducationLevel] = useState<GradeLevel | "">("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -53,7 +57,16 @@ function SignInContent() {
         window.location.replace("/dashboard");
         return;
       }
-      const result = await signUpWithEmail(email, password, displayName);
+      if (!educationLevel) {
+        setError("Please select your education level.");
+        return;
+      }
+      const result = await signUpWithEmail(
+        email,
+        password,
+        displayName,
+        educationLevel
+      );
       if (result.needsEmailConfirmation) {
         setInfo(
           "Account created. Check your email to confirm, then sign in."
@@ -221,6 +234,36 @@ function SignInContent() {
                       autoComplete="name"
                       className="w-full rounded-xl border border-slate-700 bg-slate-800 py-3 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                     />
+                  </div>
+                </label>
+              )}
+
+              {mode === "signup" && (
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-medium text-slate-300">
+                    Education Level
+                  </span>
+                  <div className="relative">
+                    <GraduationCap className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                    <select
+                      required
+                      value={educationLevel}
+                      onChange={(e) =>
+                        setEducationLevel(
+                          e.target.value ? (Number(e.target.value) as GradeLevel) : ""
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-700 bg-slate-800 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    >
+                      <option value="" disabled>
+                        Select your grade
+                      </option>
+                      {gradeOptions.map((g) => (
+                        <option key={g.grade} value={g.grade}>
+                          {g.title}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </label>
               )}

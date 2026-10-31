@@ -14,6 +14,7 @@ import { apiUrl } from "@/lib/api";
 import { isSuperAdminEmail } from "@/lib/admin";
 import { clearToken, getToken, setToken } from "@/lib/auth-storage";
 import { createClient } from "@/lib/supabase/client";
+import type { GradeLevel } from "@/data/curriculum";
 
 export type AppUser = {
   uid: string;
@@ -22,7 +23,14 @@ export type AppUser = {
   photoURL: string | null;
   isSuperAdmin: boolean;
   isTeacher: boolean;
+  /** Grade chosen at sign-up (Supabase user_metadata.education_level). */
+  educationLevel: GradeLevel | null;
 };
+
+function parseEducationLevel(value: unknown): GradeLevel | null {
+  const n = typeof value === "string" ? Number(value) : value;
+  return n === 9 || n === 10 || n === 11 || n === 12 ? n : null;
+}
 
 type AuthContextType = {
   user: AppUser | null;
@@ -36,7 +44,8 @@ type AuthContextType = {
   signUpWithEmail: (
     email: string,
     password: string,
-    displayName?: string
+    displayName?: string,
+    educationLevel?: GradeLevel
   ) => Promise<{ user: AppUser | null; needsEmailConfirmation: boolean }>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -65,6 +74,7 @@ function mapFromSessionUser(
     photoURL: (meta.avatar_url as string) || (meta.picture as string) || null,
     isSuperAdmin: Boolean(roles?.isSuperAdmin ?? isSuperAdminEmail(email)),
     isTeacher: Boolean(roles?.isTeacher),
+    educationLevel: parseEducationLevel(meta.education_level),
   };
 }
 
@@ -170,7 +180,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUpWithEmail = useCallback(
-    async (email: string, password: string, displayName?: string) => {
+    async (
+      email: string,
+      password: string,
+      displayName?: string,
+      educationLevel?: GradeLevel
+    ) => {
       const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
@@ -178,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: {
           data: {
             display_name: displayName?.trim() || email.split("@")[0],
+            ...(educationLevel ? { education_level: educationLevel } : {}),
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },

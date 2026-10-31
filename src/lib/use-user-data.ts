@@ -21,6 +21,7 @@ import {
   removeTask,
   saveUserData,
   setExamPlanner,
+  storageKey,
   setLearningLanguage,
   setUseMoeLibrary,
   skipFirstRunStep,
@@ -47,6 +48,7 @@ import {
 export function useUserData() {
   const { user } = useAuth();
   const userId = user?.uid || user?.email || "";
+  const educationLevel = user?.educationLevel ?? null;
   const [data, setData] = useState<UserLearningData>(createEmptyUserData);
   const [ready, setReady] = useState(false);
   const [moeBookCount, setMoeBookCount] = useState(0);
@@ -62,7 +64,13 @@ export function useUserData() {
       return;
     }
     let cancelled = false;
-    const loaded = loadUserData(userId);
+    const isNewLocalProfile = localStorage.getItem(storageKey(userId)) === null;
+    let loaded = loadUserData(userId);
+    if (isNewLocalProfile) {
+      // Seed the exam focus from the grade chosen at sign-up.
+      loaded = { ...loaded, examFocusGrade: educationLevel ?? 9 };
+      saveUserData(userId, loaded);
+    }
     setData(loaded);
     setReady(true);
     // Classroom snapshot (academic-only) — keep for assignment urgency
@@ -78,7 +86,7 @@ export function useUserData() {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, educationLevel]);
 
   useEffect(() => {
     let cancelled = false;
